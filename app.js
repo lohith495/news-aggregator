@@ -5,7 +5,8 @@ const Validator = require('./helpers/validator');
 const User = require('./model/user');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-var usersArray = [];
+const verifyToken = require('./middleware/auth');
+let usersArray = [];
 require('dotenv').config();
 
 app.use(express.json());
@@ -57,6 +58,32 @@ app.post('/login', (req, res) => {
             message: "Login Successful",
             accessToken: token
         });
+    }
+});
+
+app.get('/preferences', verifyToken,  (req, res) => {
+    if(req.email){
+        console.log(req.email);
+        let userPreferences = usersArray.filter(val => val.email == req.email);
+        return res.status(200).json(userPreferences[0].preferences);
+    }
+    else{
+        return res;
+    }
+});
+
+app.put('/preferences', verifyToken,  (req, res) => {
+    if(req.email){
+        console.log(req.email);
+        let filteredUser = usersArray.filter(val => val.email == req.email);
+        let filteredUserIndex = filteredUser.map(val => usersArray.indexOf(val));
+        // let user = new User(userPreferencesArray[0].email,userPreferencesArray[0].fullName, userPreferencesArray[0].password, userPreferencesArray[0].preferences);
+        usersArray[filteredUserIndex].preferences = req.body.preferences;
+        console.log('User Array after updating preferences: '+JSON. stringify(usersArray, undefined, 4));
+        return res.status(200).json(usersArray[filteredUserIndex].preferences);
+    }
+    else{
+        return res;
     }
 });
 

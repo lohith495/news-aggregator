@@ -3,7 +3,7 @@ class User {
         this.email = email;
         this.fullname = fullname;
         this.password = password;
-        this.prefernces = preferences;
+        this.preferences = preferences;
     }
 };
 module.exports = User;
