@@ -6,6 +6,7 @@ const User = require('./model/user');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const verifyToken = require('./middleware/auth');
+const {default: axios} = require('axios');
 let usersArray = [];
 require('dotenv').config();
 
@@ -86,5 +87,63 @@ app.put('/preferences', verifyToken,  (req, res) => {
         return res;
     }
 });
+
+function stringify(obj) {
+    let cache = [];
+    let str = JSON.stringify(obj, function(key, value) {
+      if (typeof value === "object" && value !== null) {
+        if (cache.indexOf(value) !== -1) {
+          // Circular reference found, discard key
+          return;
+        }
+        // Store value in our collection
+        cache.push(value);
+      }
+      return value;
+    });
+    cache = null; // reset the cache
+    return str;
+  }
+function todaysDate(){
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const todayDateString = `${year}-${month}-${day}`;
+    console.log(todayDateString);
+    return todayDateString;
+}
+app.get('/news', verifyToken, async (req, res) => {
+    if(req.email){
+        console.log(req.email);
+        let filteredUser = usersArray.filter(val => val.email == req.email);
+        let filteredUserIndex = filteredUser.map(val => usersArray.indexOf(val));
+        let userPreferences = usersArray[filteredUserIndex].preferences;
+        let urlArray = [];
+        let urlPrefix="https://newsapi.org/v2/top-headlines?country=in&category=";
+        let urlsuffix = "&apiKey="+process.env.API_KEY+"&from="+todaysDate()+"&pageSize=5";
+        let results = [];
+        for(let i=0; i<userPreferences.length; i++){
+            let url = urlPrefix+userPreferences[i]+urlsuffix;
+            urlArray.push(url);
+        }
+        for(let i=0; i<urlArray.length;i++){
+            console.log("invoking for: "+urlArray[i]);
+            await axios.get(urlArray[i]).then(data => {
+                console.log(stringify(data.data.articles));
+                results.push(data.data.articles);
+                console.log(results);
+            }).catch(err => {
+                console.log(err);
+                return res.status(500).json(err);
+            });
+        }
+        console.log(results);
+        return res.status(200).send(results);
+    }
+    else{
+        return res;
+    }
+})
 
 module.exports = app;
